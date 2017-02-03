@@ -1,33 +1,38 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import pyfits
+
 import pywt
 import pywt.data
 
-noise_sigma = 20
+noise_sigma = 2
 wavelet = 'bior6.8'
 
 # Load image
-original_image = pywt.data.camera()
+# original_image = pywt.data.camera()
+hdu_list = pyfits.open('./run1001.simtel.gz_TEL001_EV00507.fits')
+# get adc sums and take the second gain channel
+original_image = hdu_list[2].data[1]
 
 noise = np.random.normal(loc=0, scale=noise_sigma, size=original_image.shape)
 noised_image = original_image + noise
 
+#
+# fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+# ax1.imshow(original_image, interpolation='nearest', cmap='gray')
+# ax2.imshow(noised_image, interpolation='nearest', cmap='gray')
 
-fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
-ax1.imshow(original_image, interpolation='nearest', cmap='gray')
-ax2.imshow(noised_image, interpolation='nearest', cmap='gray')
-
-original_image = noised_image
+# original_image = noised_image
 
 
 # Wavelet transform of image, and plot approximation and details
 titles = ['Approximation', ' Horizontal detail',
           'Vertical detail', 'Diagonal detail']
 
-# level = pywt.swt_max_level(len(original_image))
+level = pywt.swt_max_level(len(original_image))
 
-level = 4
+# level = 4
 print('maximum level of decomposition: {}'.format(level))
 
 coeff_list = pywt.swt2(original_image, wavelet, level)
@@ -60,7 +65,7 @@ def denoise(coefficient_list, sigma_d=2, k=3, kind='hard',
 
 cmap = 'viridis'
 # Now reconstruct and plot the original image
-reconstructed_image = pywt.iswt2(denoise(coeff_list, sigma_d=noise_sigma, kind='soft'), wavelet)
+reconstructed_image = pywt.iswt2(denoise(coeff_list, sigma_d=noise_sigma, kind='hard'), wavelet)
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(nrows=2, ncols=2)
 im = ax1.imshow(original_image, interpolation='nearest', cmap=cmap)
@@ -73,7 +78,7 @@ ax2.set_title('reconstructed')
 
 im = ax3.imshow(original_image - reconstructed_image, interpolation='nearest', cmap=cmap)
 fig.colorbar(im, ax=ax3)
-ax2.set_title('residual')
+ax3.set_title('residual')
 
 # # Check that reconstructed image is close to the original
 # np.testing.assert_allclose(original, reconstructed, atol=1e-3, rtol=1e-3)
