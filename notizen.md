@@ -1,6 +1,10 @@
 #Wavelets and shit
 
-mr_filter uses a bspline wavelet transform (if you supply no other option)
+So the whole motiviation for this is to find out whats going on exactly in
+the programm called mr_filter provided by the c++ library written by the
+cosmostat group.
+
+mr_filter uses, allegedly,  a bspline wavelet transform (if you supply no other option)
 
 The coefficients stored in the code are.
 
@@ -9,10 +13,14 @@ The coefficients stored in the code are.
     float Coeff_h2 = 1. / 16.;
 
 which is crazy speak for something symmetric I presume.
+While i'm not quite sure yet how these coefficients connect to those
+used during the construction of Splines or Bspline Basis functions I presume
+the coefficients c = [1/16, 1/4, 3/8 , 1/4, 1/16] makes more sense.
+Interestingly this corresponds to
 
-Using the coefficients c = [1/16, 1/4, 3/8 , 1/4, 1/16] makes more sense.
-This is a B3 spline in 1D. The 2D matrix is the outer product of
-the c with itself.
+    1/2 * (coefficients of the two scale relationship of the cubic bspline)
+
+The outer product of the c with itself yields this matrix.
 
     In [18]: np.outer(c, c)
     Out[18]:
@@ -22,10 +30,15 @@ the c with itself.
        [ 0.015625  ,  0.0625    ,  0.09375   ,  0.0625    ,  0.015625  ],
        [ 0.00390625,  0.015625  ,  0.0234375 ,  0.015625  ,  0.00390625]])
 
-No lets try and translate that to a more commonly used name for wavelets.
+This is the convolution kernel used during the actual transformation of an image.
+
+Now lets try and translate that to a more commonly used name for wavelets.
 
 First important thing to notice is, that there are two common names for the same thing.
 Father Wavelet and Scaling function. These two terms have the same meaning.
+Also spline-wavelet seems to be a common term for the special class of wavelets constructed
+from BSplines. These are not orthogonal but they do have compact support. which is nice.
+
 
 To produce a wavelet within the pywt library we'd need the coefficents of the scaling filter.
 I don't how to get them yet. However the default scaling function used in mr_filter is
