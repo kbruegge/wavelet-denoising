@@ -7,16 +7,25 @@ import pywt
 import pywt.data
 
 noise_sigma = 2
-wavelet = 'bior6.8'
+wavelet = 'bior1.3'
 
+index = {'adc sum images': 2,
+         'calibrated image': 0,
+         'calibration images': 5,
+         'gains images': 4,
+         'pe image': 1,
+         'pedestal images': 3,
+         'pixels position': 6}
 # Load image
 # original_image = pywt.data.camera()
 hdu_list = pyfits.open('./run1001.simtel.gz_TEL001_EV00507.fits')
 # get adc sums and take the second gain channel
-original_image = hdu_list[2].data[1]
+original_image = hdu_list[index['calibrated image']].data
 
-noise = np.random.normal(loc=0, scale=noise_sigma, size=original_image.shape)
-noised_image = original_image + noise
+npe_truth = hdu_list[index['pe image']].data
+
+# noise = np.random.normal(loc=0, scale=noise_sigma, size=original_image.shape)
+# noised_image = original_image + noise
 
 #
 # fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
@@ -29,10 +38,10 @@ noised_image = original_image + noise
 # Wavelet transform of image, and plot approximation and details
 titles = ['Approximation', ' Horizontal detail',
           'Vertical detail', 'Diagonal detail']
-
+print(len(original_image))
 level = pywt.swt_max_level(len(original_image))
 
-# level = 4
+# level = 3
 print('maximum level of decomposition: {}'.format(level))
 
 coeff_list = pywt.swt2(original_image, wavelet, level)
@@ -42,7 +51,8 @@ for i, coeffs in enumerate(coeff_list):
     cA, (cH, cV, cD) = coeffs
     axes_row = axs[i]
     for ax, c in zip(axes_row, [cA, cH, cV, cD]):
-        ax.imshow(c, origin='image', interpolation="nearest", cmap=plt.cm.gray)
+        im = ax.imshow(c, origin='image', interpolation="nearest", cmap=plt.cm.gray)
+        fig.colorbar(im, ax=ax)
 
 fig.suptitle("swt2 coefficients", fontsize=12)
 
@@ -65,7 +75,10 @@ def denoise(coefficient_list, sigma_d=2, k=3, kind='hard',
 
 cmap = 'viridis'
 # Now reconstruct and plot the original image
-reconstructed_image = pywt.iswt2(denoise(coeff_list, sigma_d=noise_sigma, kind='hard'), wavelet)
+# reconstructed_image = pywt.iswt2(denoise(coeff_list, sigma_d=noise_sigma, kind='hard'), wavelet)
+levels = [0.889, 0.7, 0.586]
+coeff_list = denoise(coeff_list, sigma_d=noise_sigma, kind='hard', sigma_levels=levels)
+reconstructed_image = pywt.iswt2(coeff_list, wavelet)
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(nrows=2, ncols=2)
 im = ax1.imshow(original_image, interpolation='nearest', cmap=cmap)
@@ -79,6 +92,10 @@ ax2.set_title('reconstructed')
 im = ax3.imshow(original_image - reconstructed_image, interpolation='nearest', cmap=cmap)
 fig.colorbar(im, ax=ax3)
 ax3.set_title('residual')
+
+im = ax4.imshow(npe_truth, interpolation='nearest', cmap=cmap)
+fig.colorbar(im, ax=ax4)
+ax4.set_title('simulated photons')
 
 # # Check that reconstructed image is close to the original
 # np.testing.assert_allclose(original, reconstructed, atol=1e-3, rtol=1e-3)
