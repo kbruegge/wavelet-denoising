@@ -1,0 +1,2 @@
+backend      : qt5agg
+grid.alpha   : 0.0
