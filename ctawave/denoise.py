@@ -1,6 +1,30 @@
 import pywt
 from scipy.signal import wiener
 
+def thresholding_3d(
+            coefficient_list,
+            sigma_d=2,
+            k=3,
+            kind='hard',
+            sigma_levels=[0.889, 0.2, 0.086, 0.041, 0.020, 0.010, 0.005, 0.0025, 0.0012]):
+    '''
+    Here we just iterate over all the coefficents and remove those under a certain
+    threshold using the pywt.threshold method.
+    '''
+
+    r = []
+    for level, cs in enumerate(coefficient_list):
+        d = {}
+        for key, v in cs.items():
+            if key == 'aaa':
+                d[key] = v
+            else:
+                d[key] = pywt.threshold(v, sigma_d*k*sigma_levels[level], kind)
+        r.append(d)
+
+    return r
+
+
 def thresholding(coefficient_list, sigma_d=2, k=3, kind='hard',
             sigma_levels=[0.889, 0.2, 0.086, 0.041, 0.020, 0.010, 0.005, 0.0025, 0.0012]):
     '''

@@ -3,6 +3,50 @@ plt.style.use('ggplot')
 import numpy as np
 
 
+class TransientPlotter(object):
+
+    def __init__(self, left_cube, right_cube, trans_factor, cmap='viridis'):
+        self.fig = plt.figure()
+
+        ax1 = plt.subplot2grid((2, 2), (0, 0))
+        ax2 = plt.subplot2grid((2, 2), (0, 1))
+        ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
+
+        ax1.tick_params(labelbottom='off', labelleft='off')
+        ax2.tick_params(labelbottom='off', labelleft='off')
+
+        ax3.set_xlabel('Time Step in a.u.')
+        ax3.set_ylabel('Trigger Criterion in a.u.')
+
+        vmax = left_cube.max()
+        self.l_quad = ax1.pcolormesh(left_cube[0], cmap=cmap, vmin=0, vmax=vmax)
+        self.r_quad = ax2.pcolormesh(left_cube[0], cmap=cmap, vmin=0, vmax=vmax)
+
+        self.line,  = ax3.plot(0, trans_factor[0])
+
+        ax3.set_xlim([0, len(trans_factor)])
+        ax3.set_ylim([0, trans_factor.max() + 1])
+
+        self.left_cube = left_cube
+        self.right_cube = right_cube
+        self.trans_factor = trans_factor
+        self.x = []
+        self.y = []
+
+    def step(self, t):
+        self.x.append(t)
+        self.y.append(self.trans_factor[t])
+
+        l = self.left_cube[t]
+        r = self.right_cube[t]
+        self.l_quad.set_array(l.ravel())
+        self.r_quad.set_array(r.ravel())
+        self.line.set_data(self.x, self.y)
+
+        return [self.l_quad, self.r_quad, self.line]
+
+
+
 def pixel_histogram(*images, labels=['reconstructed pixel values'], bins=40):
     fig = plt.figure()
     ax = fig.add_subplot(111)
