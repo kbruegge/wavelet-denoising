@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 from matplotlib import animation
-# from tqdm import tqdm
 from ctawave.plot import TransientPlotter
 from ctawave.denoise import thresholding_3d
 from ctawave.toy_models import simulate_steady_source, \
@@ -62,7 +61,12 @@ def main(
             time_steps,
             cmap
         ):
-
+    '''
+    Use a toy model to create a transient appearing in the FoV of another source.
+    A steady background is subtracted and denoised using wavelets.
+    This script then creates an animated gif of the whoe shebang saved under the
+    OUT_FILE argument.
+    '''
     cube_steady = simulate_steady_source(
         num_slices=time_steps,
         source_count=signal_events,
