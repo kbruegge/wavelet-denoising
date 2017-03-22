@@ -12,7 +12,7 @@ def main():
     wavelet = 'bior1.3'
 
     images = list(io.load_fits_images_in_folder('./resources'))
-    with PdfPages('multipage_pdf.pdf') as pdf:
+    with PdfPages('multipage.pdf') as pdf:
         for i, (calibrated_image, npe_truth) in tqdm(enumerate(images)):
 
             fig = plt.figure()
@@ -39,6 +39,8 @@ def main():
                                               kind='hard',
                                               sigma_levels=levels)
 
+
+            # coeff_list = denoise.wiener(coeff_list)
             reconstructed_image = pywt.iswt2(coeff_list, wavelet)
 
             fig = plot.results(calibrated_image, reconstructed_image, npe_truth)
