@@ -1,10 +1,14 @@
-#Wavelet Denoising
+# Wavelet Denoising
 
 Testing some methods to denoise different types of images using a stationary wavelet
 transform. So far this contains only scripts for testing and visual inspection.
 
+## Transient Analysis
+Execute the `toy_transient_analysis` script to produce an animation like this below.
 
-#Notes
+![wavelet](https://raw.githubusercontent.com/mackaiver/wavelet-denoising/master/animation.gif)
+
+# Notes
 
 ### Wavelets and stuff
 
