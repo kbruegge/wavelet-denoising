@@ -46,6 +46,27 @@ class TransientPlotter(object):
         return [self.l_quad, self.r_quad, self.line]
 
 
+class CubePlotter(object):
+
+    def __init__(self, cube, cmap='viridis'):
+        fig, ax = plt.subplots(1, 1)
+        self.fig = fig
+
+        # ax.tick_params(labelbottom='off', labelleft='off')
+
+        vmax = cube.max()
+        self.quad = ax.pcolormesh(cube[0], cmap=cmap, vmin=0, vmax=vmax)
+
+        self.cube = cube
+
+    def step(self, t):
+        l = self.cube[t]
+
+        self.quad.set_array(l.ravel())
+        return [self.quad]
+
+
+
 
 def pixel_histogram(*images, labels=['reconstructed pixel values'], bins=40):
     fig = plt.figure()
