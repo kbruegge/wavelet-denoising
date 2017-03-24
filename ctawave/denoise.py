@@ -43,14 +43,9 @@ def thresholding(coefficient_list, sigma_d=2, k=3, kind='hard',
     return r
 
 
-def wiener_thresholding(coefficient_list, sigma_d=2):
+def wiener_thresholding(coefficient_list):
     '''
-    at this points we have al coefficients for all planes. We can de-noise by adapting
-    small coefficients. Some call this step 'thresholding'.
-    When small, or better yet insignificant,
-    coefficents are set to 0 without touching the other coefficients
-    the process is called hard thresholding.
-    Now assume a fixed sigma for the input data noise
+    Call the defautl scipy wiener filter on the coefficients for thresholding.
     '''
     r = []
     for level, coeffs in enumerate(coefficient_list):
