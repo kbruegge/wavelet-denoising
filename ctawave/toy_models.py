@@ -52,6 +52,7 @@ def simulate_steady_source_with_transient(
             time_dependend_transient,
             source_count=100,
             background_count=1000,
+            bins=[80, 80]
             ):
     '''
     create a cube of images with a steady source and a steady background.
@@ -66,22 +67,36 @@ def simulate_steady_source_with_transient(
     transient_location = np.array([59, 20])*u.deg
     time, values = time_dependend_transient()
     for t, v in tqdm(zip(time, values), total=len(time)):
-        H = background_poissonian(expected_background_events=background_count) + signal_gaussian(signal_events=source_count)
+        H = background_poissonian(
+                expected_background_events=background_count,
+                size=bins
+            ) + signal_gaussian(
+                signal_events=source_count,
+                bins=bins
+            )
+
         transient_signal = signal_gaussian(
                         signal_location=transient_location,
                         signal_events=v,
-                        width=0.01*u.deg
+                        width=0.01*u.deg,
+                        bins=bins,
                         )
+
         H = H + transient_signal
         slices.append(H)
     return np.array(slices)
 
 
-def simulate_steady_source(num_slices=100, source_count=200, background_count=1000):
+def simulate_steady_source(
+            num_slices=100,
+            source_count=200,
+            background_count=1000,
+            bins=[80, 80]
+        ):
     slices = []
     for i in tqdm(range(num_slices)):
-        H = background_poissonian(expected_background_events=background_count) \
-                + signal_gaussian(signal_events=source_count)
+        H = background_poissonian(expected_background_events=background_count, size=bins) \
+                + signal_gaussian(signal_events=source_count, bins=bins)
 
         slices.append(H)
     return np.array(slices)

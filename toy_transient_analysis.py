@@ -20,21 +20,21 @@ plt.style.use('ggplot')
               )
 @click.option(
     '--signal_events',
-    '-s',
+    '-n_s',
     type=click.INT,
     help='Number of events the steady source emits per image',
     default='100'
 )
 @click.option(
     '--background_events',
-    '-b',
+    '-n_b',
     type=click.INT,
     help='Number of background_events per image',
     default='1000'
 )
 @click.option(
     '--max_transient_events',
-    '-t',
+    '-n_t',
     type=click.INT,
     help='Number of events the transient source emits at its peak activity',
     default='200'
@@ -67,10 +67,13 @@ def main(
     This script then creates an animated gif of the whoe shebang saved under the
     OUT_FILE argument.
     '''
+
+    bins = [bins, bins]
     cube_steady = simulate_steady_source(
         num_slices=time_steps,
         source_count=signal_events,
         background_count=background_events,
+        bins=bins,
     )
 
     def time_dependency():
@@ -79,7 +82,8 @@ def main(
     cube_with_transient = simulate_steady_source_with_transient(
         time_dependency,
         source_count=signal_events,
-        background_count=background_events
+        background_count=background_events,
+        bins=bins
     )
 
     # remove mean measured noise from current cube

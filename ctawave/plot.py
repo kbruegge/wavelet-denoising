@@ -2,8 +2,23 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import numpy as np
 
+    # plt.savefig(output_file)
 
 class TransientPlotter(object):
+
+    @staticmethod
+    def plot_trigger_criterion(transient):
+        fig, ax = plt.subplots(1)
+        # rotate and align the tick labels so they look better
+        for i in range(len(transient.trigger_criterion)):
+            ax.plot(transient.trigger_criterion_timestamps[i], transient.trigger_criterion[i], '.')
+
+        import matplotlib.dates as mdates
+        ax.fmt_xdata = mdates.DateFormatter('%H:%M:%S')
+        fig.autofmt_xdate()
+
+        return fig
+
 
     def __init__(self, left_cube, right_cube, trans_factor, cmap='viridis'):
         self.fig = plt.figure()
@@ -44,6 +59,7 @@ class TransientPlotter(object):
         self.line.set_data(self.x, self.y)
 
         return [self.l_quad, self.r_quad, self.line]
+
 
 
 class CubePlotter(object):

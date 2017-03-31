@@ -1,16 +1,17 @@
 import numpy as np
+import datetime
 # import astropy.units as u
-# from matplotlib import animation
+from matplotlib import animation
 from ctawave.denoise import thresholding_3d
-# from ctawave.plot import TransientPlotter
+from ctawave.plot import TransientPlotter
 import pywt
 from collections import deque
 
 class Transient(object):
     window = deque([])
 
-    bins = [80, 80]
-    bin_range = [[62.5, 78.5], [-12.4, 12.4]]
+    bins = [64, 64]
+    bin_range = [[62.5, 78.5], [-12.5, 12.5]]
 
     steady_cube = deque()
     current_cube = deque()
@@ -22,11 +23,16 @@ class Transient(object):
                 self,
                 window_duration,
                 step=datetime.timedelta(seconds=1),
-                slices_per_cube=40,
+                slices_per_cube=64,
+                bins=[64, 64],
+                bin_range=[[62.5, 78.5], [-12.5, 12.5]],
             ):
+
         self.slices_per_cube = slices_per_cube
         self.window_duration = window_duration
         self.step = step
+        self.bins = bins
+        self.bin_range = bin_range
 
     def _current_window_size(self):
         t_min, alt, az = self.window.popleft()
@@ -44,7 +50,6 @@ class Transient(object):
     def add_point(self, t, alt, az):
 
         self.window.append((t, alt, az))
-
         if self._current_window_size() < self.window_duration:
             return
 
@@ -106,22 +111,22 @@ class Transient(object):
         trans_factor = cube_smoothed.max(axis=1).max(axis=1)
 
         # return trans_factor
+        
+        p = TransientPlotter(cube_with_transient,
+                             cube_smoothed,
+                             trans_factor,
+                             cmap='viridis',
+                             )
 
-        # p = TransientPlotter(cube_with_transient,
-        #                      cube_smoothed,
-        #                      trans_factor,
-        #                      cmap='viridis',
-        #                      )
-        #
-        # print('Plotting animation. (Be patient)')
-        # anim = animation.FuncAnimation(
-        #     p.fig,
-        #     p.step,
-        #     frames=len(cube),
-        #     interval=15,
-        #     blit=True,
-        # )
-        #
-        # anim.save('build/anim_{}.gif'.format(self.window.popleft()[0]), writer='imagemagick', fps=25)
+        print('Plotting animation. (Be patient)')
+        anim = animation.FuncAnimation(
+            p.fig,
+            p.step,
+            frames=len(cube),
+            interval=15,
+            blit=True,
+        )
+
+        anim.save('build/anim_{}.gif'.format(self.window.popleft()[0]), writer='imagemagick', fps=25)
 
         return trans_factor

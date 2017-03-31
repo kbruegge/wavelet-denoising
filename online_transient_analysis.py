@@ -3,67 +3,80 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from ctawave.online_wavelet_analysis import Transient
+from ctawave.plot import TransientPlotter
 import random
 from tqdm import tqdm
+from scipy.stats import norm
 plt.style.use('ggplot')
+
+
+def background_generator(alt_range=[62.5, 78.5], az_range=[-12.5, 12.5]):
+    while True:
+        alt = random.uniform(*alt_range)
+        az = random.uniform(*az_range)
+        yield alt, az
+
+
+def signal_generator(center=[70, 0], width=1):
+    while True:
+        yield norm.rvs(loc=center, scale=width)
 
 
 @click.command()
 @click.argument('output_file', type=click.Path(exists=False))
 def main(output_file):
 
+    fov_region = [[62.5, 78.5], [-12.5, 12.5]]
+
+    background_per_second = 10000
+    signal_per_second = 500
+    interval = 30  # seconds
+
+    protons = background_generator()
+    gammas = signal_generator()
+
     transient = Transient(
-                    window_duration=datetime.timedelta(seconds=40),
-                    slices_per_cube=40,
-                    step=datetime.timedelta(seconds=20)
+                    window_duration=datetime.timedelta(seconds=30),
+                    slices_per_cube=32,
+                    step=datetime.timedelta(seconds=7),
+                    bins=[32, 32],
+                    bin_range=fov_region,
                 )
 
-    target_region = [[69.5, 70.5], [-0.5, 0.5]]
-    alt_range = np.array(transient.bin_range[0])
-    az_range = np.array(transient.bin_range[1])
+    t_start = datetime.datetime.utcnow()
 
-    t_background = datetime.datetime.utcnow()
-    t_signal = t_background
+    N = background_per_second * interval
+    timedeltas = np.sort(np.random.random(N) * interval)
+    time_stamps = [t_start + datetime.timedelta(seconds=t) for t in timedeltas]
 
-    for i in tqdm(range(40*10000)):
+    for t in tqdm(time_stamps):
+        alt, az = next(protons)
+        transient.add_point(t, alt, az)
 
-        alt = random.uniform(*alt_range)
-        az = random.uniform(*az_range)
-        t_background = t_background + datetime.timedelta(seconds=0.0001)
+    t_start = max(time_stamps)
 
-        transient.add_point(t_background, alt, az)
+    N = (signal_per_second + background_per_second) * interval
+    p = np.array([background_per_second * interval, signal_per_second * interval]) / N
 
-    for i in tqdm(range(40*10000)):
+    timedeltas = np.sort(np.random.random(N) * interval)
+    time_stamps = [t_start + datetime.timedelta(seconds=t) for t in timedeltas]
 
-        alt = random.uniform(*alt_range)
-        az = random.uniform(*az_range)
-        t_background = t_background + datetime.timedelta(seconds=0.0001)
+    for t in tqdm(time_stamps):
+        alt, az = next(np.random.choice([protons, gammas], p=p))
+        transient.add_point(t, alt, az)
 
-        transient.add_point(t_background, alt, az)
+    t_start = max(time_stamps)
 
-        alt = random.uniform(*target_region[0])
-        az = random.uniform(*target_region[1])
-        t_signal = t_background + datetime.timedelta(seconds=random.uniform(0.00005, 0.0001))
-        transient.add_point(t_signal, alt, az)
+    N = background_per_second * interval
+    timedeltas = np.sort(np.random.random(N) * interval)
+    time_stamps = [t_start + datetime.timedelta(seconds=t) for t in timedeltas]
 
-    for i in tqdm(range(80*10000)):
+    for t in tqdm(time_stamps):
+        alt, az = next(protons)
+        transient.add_point(t, alt, az)
 
-        alt = random.uniform(*alt_range)
-        az = random.uniform(*az_range)
-        t_background = t_background + datetime.timedelta(seconds=0.0001)
-
-        transient.add_point(t_background, alt, az)
-
-    fig, ax = plt.subplots(1)
-    # rotate and align the tick labels so they look better
-    for i in range(len(transient.trigger_criterion)):
-        ax.plot(transient.trigger_criterion_timestamps[i], transient.trigger_criterion[i], '.')
-
-    import matplotlib.dates as mdates
-    ax.fmt_xdata = mdates.DateFormatter('%H:%M:%S')
-    fig.autofmt_xdate()
-
-    plt.savefig(output_file)
+    fig = TransientPlotter.plot_trigger_criterion(transient)
+    fig.savefig(output_file)
 
 
 if __name__ == "__main__":
