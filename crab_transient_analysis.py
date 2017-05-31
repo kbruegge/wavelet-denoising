@@ -14,13 +14,6 @@ plt.style.use('ggplot')
 @click.command()
 @click.argument('out_file', type=click.Path(file_okay=True, dir_okay=False))
 @click.option(
-    '--bins',
-    '-b',
-    type=click.INT,
-    help='Pixels per axis',
-    default='80',
-              )
-@click.option(
     '--time_steps',
     '-s',
     type=click.INT,
@@ -31,8 +24,8 @@ plt.style.use('ggplot')
     '--time_per_slice',
     '-t',
     type=click.INT,
-    help='Measuring time for one slice',
-    default='100'
+    help='Measuring time for one slice in s',
+    default='30'
 )
 @click.option(
     '--cmap',
@@ -42,7 +35,6 @@ plt.style.use('ggplot')
 )
 def main(
             out_file,
-            bins,
             time_per_slice,
             time_steps,
             cmap
@@ -69,8 +61,8 @@ def main(
         sep='\s+',
         index_col=False)
 
-    cube_steady = simulate_steady_source(3, 3, a_eff_cta_north, ang_res_cta_north)
-    cube_with_transient = simulate_steady_source_with_transient(3, 3, 1, 1, a_eff_cta_north, ang_res_cta_north)
+    cube_steady = simulate_steady_source(3, 3, a_eff_cta_north, ang_res_cta_north, num_slices=time_steps, time_per_slice=time_per_slice)
+    cube_with_transient = simulate_steady_source_with_transient(3, 3, 1, 1, a_eff_cta_north, ang_res_cta_north, num_slices=time_steps, time_per_slice=time_per_slice)
 
     # remove mean measured noise from current cube
     cube = cube_with_transient - cube_steady.mean(axis=0)
