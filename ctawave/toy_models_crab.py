@@ -46,7 +46,7 @@ def sample_positions_steady_source(x_pos, y_pos, ang_res):
     RA = []
     DEC = []
     for r in ang_res:
-        cov = [[r, 0], [0, r]]
+        cov = [[r**2, 0], [0, r**2]]
         x, y = np.random.multivariate_normal(mean, cov).T
         RA.append(x)
         DEC.append(y)
@@ -65,6 +65,7 @@ def simulate_steady_source_with_transient(
             x_pos_transient,
             y_pos_transient,
             df_A_eff,
+            df_bg_rate,
             df_Ang_Res,
             num_slices=100,
             time_per_slice=30,
@@ -78,17 +79,15 @@ def simulate_steady_source_with_transient(
             index_crab=2.62,
             index_backround=2.7,
             fov_min=0,
-            fov_max=6,
-            opening_angle=3
+            fov_max=12,
+            opening_angle=6
             ):
 
-    Omega = 2*np.pi*(1-np.cos(opening_angle*np.pi/180))
+    # Omega = 2*np.pi*(1-np.cos(opening_angle*np.pi/180))
     N_steady_source = N_E(A_crab, C_crab, 1, index_crab, time_per_slice, E_min, E_max)
-    N_background = N_E(A_background, C_background, Omega, index_backround, time_per_slice, E_min*1e3, E_max*1e3)
+    N_background_cta = df_bg_rate.bg_rate.sum()*time_per_slice
 
     sample_factor_a_eff = calc_a_eff_factor(df_A_eff)
-
-    false_positive = 0.001                                                      # Estimated fp-rate! (Diss. Temme)
 
     N_transient_max = 2*N_steady_source                                         # Random number for transient sample!!!
     transient_scale = (N_transient_max*signal.gaussian(num_slices, std=5)).astype(int)  # arbitrary value for std!!
@@ -98,7 +97,7 @@ def simulate_steady_source_with_transient(
         folded_events_crab = folded_spectrum(index_crab, E_min, E_max, N_steady_source, df_A_eff, sample_factor_a_eff)
         ang_res_steady_source = interp_ang_res(folded_events_crab, df_Ang_Res)
         RA_crab, DEC_crab = sample_positions_steady_source(x_pos_steady_source, y_pos_steady_source, ang_res_steady_source)
-        RA_bg, DEC_bg = sample_positions_background_random(fov_min, fov_max, int(N_background*sample_factor_a_eff*false_positive))
+        RA_bg, DEC_bg = sample_positions_background_random(fov_min, fov_max, int(N_background_cta))
         if transient_scale[i] > 0:
             folded_events_transient = folded_spectrum(index_crab, E_min, E_max, transient_scale[i], df_A_eff, sample_factor_a_eff)
             ang_res_transinet = interp_ang_res(folded_events_transient, df_Ang_Res)
@@ -117,6 +116,7 @@ def simulate_steady_source(
             x_pos,
             y_pos,
             df_A_eff,
+            df_bg_rate,
             df_Ang_Res,
             num_slices=100,
             time_per_slice=30,
@@ -130,17 +130,15 @@ def simulate_steady_source(
             index_crab=2.62,
             index_backround=2.7,
             fov_min=0,
-            fov_max=6,
-            opening_angle=3
+            fov_max=12,
+            # opening_angle=6
         ):
 
-    Omega = 2*np.pi*(1-np.cos(opening_angle*np.pi/180))
+    # Omega = 2*np.pi*(1-np.cos(opening_angle*np.pi/180))
     N_steady_source = N_E(A_crab, C_crab, 1, index_crab, time_per_slice, E_min, E_max)
-    N_background = N_E(A_background, C_background, Omega, index_backround, time_per_slice, E_min*1e3, E_max*1e3)
+    N_background_cta = df_bg_rate.bg_rate.sum()*time_per_slice
 
     sample_factor_a_eff = calc_a_eff_factor(df_A_eff)
-
-    false_positive = 0.001                                                      # Estimated fp-rate! (Diss. Temme)
 
     slices = []
     for i in tqdm(range(num_slices)):
@@ -148,7 +146,7 @@ def simulate_steady_source(
         ang_res_steady_source = interp_ang_res(folded_events_crab, df_Ang_Res)
 
         RA_crab, DEC_crab = sample_positions_steady_source(x_pos, y_pos, ang_res_steady_source)
-        RA_bg, DEC_bg = sample_positions_background_random(fov_min, fov_max, int(N_background*sample_factor_a_eff*false_positive))
+        RA_bg, DEC_bg = sample_positions_background_random(fov_min, fov_max, int(N_background_cta))
         RA = np.concatenate([RA_bg, RA_crab])
         DEC = np.concatenate([DEC_bg, DEC_crab])
 

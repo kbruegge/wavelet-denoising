@@ -3,6 +3,8 @@ import pandas as pd
 import pywt
 import click
 
+from astropy.io import fits
+from collections import OrderedDict
 from matplotlib import animation
 from ctawave.plot import TransientPlotter
 from ctawave.denoise import thresholding_3d
@@ -61,8 +63,32 @@ def main(
         sep='\s+',
         index_col=False)
 
-    cube_steady = simulate_steady_source(3, 3, a_eff_cta_north, ang_res_cta_north, num_slices=time_steps, time_per_slice=time_per_slice)
-    cube_with_transient = simulate_steady_source_with_transient(3, 3, 1, 1, a_eff_cta_north, ang_res_cta_north, num_slices=time_steps, time_per_slice=time_per_slice)
+    ang_res_cta_south = pd.read_csv(
+        '/home/lena/Dokumente/CTA/CTA-Performance-South-20150511.ASCII1_/CTA-Performance-South-Angres.txt',
+        names=['E_TeV', 'Ang_Res'],
+        skiprows=10,
+        sep='\s+',
+        index_col=False
+        )
+
+    a_eff_cta_south = pd.read_csv(
+        '/home/lena/Dokumente/CTA/CTA-Performance-South-20150511.ASCII1_/CTA-Performance-South-0.5h-EffArea.txt',
+        names=['E_TeV', 'A_eff'],
+        skiprows=10,
+        sep='\s+',
+        index_col=False)
+
+    cta_perf_fits = fits.open('/home/lena/Dokumente/CTA/prod3b-caldb-20170502/caldb/data/cta/prod3b/bcf/South_z20_100s/irf_file.fits')
+    data_A_eff = cta_perf_fits[1]
+    data_bg_rate = cta_perf_fits[4]
+    # area = h.data['EFFAREA']
+    # a = area[0].mean(axis=0)
+    # x = h.data['ENERG_LO'][0]
+    # a_eff_cta_south_bg = pd.DataFrame(OrderedDict({"E": data_A_eff.data['ENERG_LO'][0], "A_eff": data_A_eff.data['EFFAREA'][0].mean(axis=0)}))
+    bg_rate_south = pd.DataFrame(OrderedDict({"E_low": data_bg_rate.data['ENERG_LO'][0], "E_high": data_bg_rate.data['ENERG_HI'][0], "bg_rate": data_bg_rate.data['BGD'][0].sum(axis=1).sum(axis=1)}))
+
+    cube_steady = simulate_steady_source(6, 6, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice)
+    cube_with_transient = simulate_steady_source_with_transient(6, 6, 2, 2, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice)
 
     # remove mean measured noise from current cube
     cube = cube_with_transient - cube_steady.mean(axis=0)
