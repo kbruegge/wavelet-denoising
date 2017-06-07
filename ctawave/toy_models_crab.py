@@ -13,7 +13,7 @@ def random_power(index, e_min, e_max, N):
     return ((e_max**(1-index) - e_min**(1-index)) * u + e_min**(1-index))**(1/(1-index))
 
 
-def N_E(A, C, index, T, e_min, e_max):
+def number_particles(A, C, index, T, e_min, e_max):
     '''
     Returns the number of particles arriving from a pointlike source with known power law distribution
 
@@ -47,7 +47,7 @@ def calc_a_eff_factor(df_A_eff, cta_radius):
     return integrate_a_eff/integrate_a_impact
 
 
-def A_eff_E(E_TeV, df_A_eff):
+def interp_eff_area(E_TeV, df_A_eff):
     '''
     Interpolates effective area for given energy
     '''
@@ -69,7 +69,7 @@ def response(index, e_min, e_max, N, A_eff, sample_factor):
     events = random_power(index, e_min, e_max, N)
     A_effs = []
     for e in events:
-        A_effs.append(A_eff_E(e, A_eff))
+        A_effs.append(interp_eff_area(e, A_eff))
     folded_events = np.random.choice(a=events, p=np.divide(A_effs, sum(A_effs)), size=int(sample_factor*N))
     return folded_events
 
@@ -112,9 +112,7 @@ def simulate_steady_source_with_transient(
             E_min=0.015 * u.TeV,
             E_max=100 * u.TeV,
             A_crab=2e10 * u.cm**2,
-            A_background=2e6 * u.m**2,
             C_crab=2.83e-11 / (u.cm**2 * u.s * u.TeV),
-            C_background=1.8e4 / (u.m**2 * u.s * u.GeV),
             index_crab=2.62,
             index_backround=2.7,
             fov_min=0 * u.deg,
@@ -123,7 +121,7 @@ def simulate_steady_source_with_transient(
             radius_cta_south=800 * u.m
             ):
 
-    N_steady_source = N_E(A_crab, C_crab, index_crab, time_per_slice, E_min, E_max)
+    N_steady_source = number_particles(A_crab, C_crab, index_crab, time_per_slice, E_min, E_max)
     N_background_cta = int(df_bg_rate.bg_rate.sum() / (u.s) * time_per_slice)
 
     sample_factor_a_eff = calc_a_eff_factor(df_A_eff, radius_cta_south)
@@ -163,9 +161,7 @@ def simulate_steady_source(
             E_min=0.015 * u.TeV,
             E_max=100 * u.TeV,
             A_crab=2e10 * u.cm**2,
-            A_background=2e6 * u.m**2,
             C_crab=2.83e-11 / (u.cm**2 * u.s * u.TeV),
-            C_background=1.8e4 / (u.m**2 * u.s * u.GeV),
             index_crab=2.62,
             index_backround=2.7,
             fov_min=0 * u.deg,
@@ -174,7 +170,7 @@ def simulate_steady_source(
             radius_cta_south=800 * u.m
         ):
 
-    N_steady_source = N_E(A_crab, C_crab, index_crab, time_per_slice, E_min, E_max)
+    N_steady_source = number_particles(A_crab, C_crab, index_crab, time_per_slice, E_min, E_max)
     N_background_cta = int(df_bg_rate.bg_rate.sum() / (u.s) * time_per_slice)
 
     sample_factor_a_eff = calc_a_eff_factor(df_A_eff, radius_cta_south)
