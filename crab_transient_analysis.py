@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pywt
 import click
+import astropy.units as u
 
 from astropy.io import fits
 from collections import OrderedDict
@@ -42,53 +43,24 @@ def main(
             cmap
         ):
     '''
-    Use a toy model to create a transient appearing in the FoV of another source.
+    Use a crab toy model to create a transient appearing in the FoV of another source.
     A steady background is subtracted and denoised using wavelets.
-    This script then creates an animated gif of the whoe shebang saved under the
+    This script then creates an animated gif of the whole shebang saved under the
     OUT_FILE argument.
     '''
 
-    ang_res_cta_north = pd.read_csv(
-        '/home/lena/Dokumente/CTA/CTA-Performance-North-20150511.ASCII_/CTA-Performance-North-Angres.txt',
-        names=['E_TeV', 'Ang_Res'],
-        skiprows=10,
-        sep='\s+',
-        index_col=False
-        )
-
-    a_eff_cta_north = pd.read_csv(
-        '/home/lena/Dokumente/CTA/CTA-Performance-North-20150511.ASCII_/CTA-Performance-North-0.5h-EffArea.txt',
-        names=['E_TeV', 'A_eff'],
-        skiprows=10,
-        sep='\s+',
-        index_col=False)
-
-    ang_res_cta_south = pd.read_csv(
-        '/home/lena/Dokumente/CTA/CTA-Performance-South-20150511.ASCII1_/CTA-Performance-South-Angres.txt',
-        names=['E_TeV', 'Ang_Res'],
-        skiprows=10,
-        sep='\s+',
-        index_col=False
-        )
-
-    a_eff_cta_south = pd.read_csv(
-        '/home/lena/Dokumente/CTA/CTA-Performance-South-20150511.ASCII1_/CTA-Performance-South-0.5h-EffArea.txt',
-        names=['E_TeV', 'A_eff'],
-        skiprows=10,
-        sep='\s+',
-        index_col=False)
-
     cta_perf_fits = fits.open('/home/lena/Dokumente/CTA/prod3b-caldb-20170502/caldb/data/cta/prod3b/bcf/South_z20_100s/irf_file.fits')
     data_A_eff = cta_perf_fits[1]
+    data_ang_res = cta_perf_fits[2]
     data_bg_rate = cta_perf_fits[4]
-    # area = h.data['EFFAREA']
-    # a = area[0].mean(axis=0)
-    # x = h.data['ENERG_LO'][0]
-    # a_eff_cta_south_bg = pd.DataFrame(OrderedDict({"E": data_A_eff.data['ENERG_LO'][0], "A_eff": data_A_eff.data['EFFAREA'][0].mean(axis=0)}))
-    bg_rate_south = pd.DataFrame(OrderedDict({"E_low": data_bg_rate.data['ENERG_LO'][0], "E_high": data_bg_rate.data['ENERG_HI'][0], "bg_rate": data_bg_rate.data['BGD'][0].sum(axis=1).sum(axis=1)}))
 
-    cube_steady = simulate_steady_source(6, 6, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice)
-    cube_with_transient = simulate_steady_source_with_transient(6, 6, 2, 2, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice)
+    a_eff_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_A_eff.data['ENERG_LO'][0] + data_A_eff.data['ENERG_HI'][0])/2, "A_eff": data_A_eff.data['EFFAREA'][0].mean(axis=0)}))
+    ang_res_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_ang_res.data['ENERG_LO'][0] + data_ang_res.data['ENERG_HI'][0])/2, "Ang_Res": data_ang_res.data['SIGMA'][0][0]}))
+    bg_rate_south = pd.DataFrame(OrderedDict({"E_TeV": (data_bg_rate.data['ENERG_LO'][0] + data_bg_rate.data['ENERG_HI'][0])/2, "bg_rate": data_bg_rate.data['BGD'][0].sum(axis=1).sum(axis=1)}))
+
+    # create cubes for steady source and steady source with transient
+    cube_steady = simulate_steady_source(6 * u.deg, 6 * u.deg, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
+    cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
 
     # remove mean measured noise from current cube
     cube = cube_with_transient - cube_steady.mean(axis=0)
