@@ -1,8 +1,9 @@
 import numpy as np
-import astropy.units as u
 import spectrum
+import astropy.units as u
 from scipy import integrate, signal
 from tqdm import tqdm
+from IPython import embed
 
 def interp_ang_res(E_TeV, df_Ang_Res):
     '''
@@ -11,15 +12,12 @@ def interp_ang_res(E_TeV, df_Ang_Res):
     return np.interp(E_TeV, df_Ang_Res.E_TeV, df_Ang_Res.Ang_Res)
 
 
-def calc_a_eff_factor(df_A_eff):
+def calc_a_eff_factor(df_A_eff, simulation_area):
     '''
     Returns integrated effective area divided by full impact area
     '''
-    cta_radius = 800 * u.m
-
-    full_area = 2*np.pi*(2*cta_radius)**2
     integrate_a_eff = integrate.simps(y=df_A_eff.A_eff, x=df_A_eff.E_TeV) * u.m**2
-    integrate_a_impact = full_area*(df_A_eff.E_TeV.max() - df_A_eff.E_TeV.min())
+    integrate_a_impact = simulation_area*(df_A_eff.E_TeV.max() - df_A_eff.E_TeV.min())
     return integrate_a_eff/integrate_a_impact
 
 
@@ -30,7 +28,7 @@ def interp_eff_area(E_TeV, df_A_eff):
     return np.interp(E_TeV / u.TeV, df_A_eff.E_TeV, df_A_eff.A_eff)
 
 
-def response(T, N, e_min, e_max, A_eff, sample_factor):
+def response(T, N, e_min, e_max, A_eff, sample_factor, simulation_area):
     '''
     Returns array of events from a source with power law distribution folded with effective area of the telescope
 
@@ -44,10 +42,21 @@ def response(T, N, e_min, e_max, A_eff, sample_factor):
     '''
 
     events = spectrum.random_power(e_min, e_max, N)
-    A_effs = []
-    for e in events:
-        A_effs.append(interp_eff_area(e, A_eff))
-    folded_events = np.random.choice(a=events, p=np.divide(A_effs, sum(A_effs)), size=int(sample_factor*N))
+    folded_events = []
+    if len(events) > 0:
+        # A_effs = []
+        for e in events:
+            # A_effs.append(interp_eff_area(e, A_eff))
+            a_eff_event = interp_eff_area(e, A_eff)
+            ulimite = (a_eff_event * u.m**2) / (simulation_area)
+
+            if(ulimite.value >= np.random.uniform(0, 1)):
+                folded_events.append(e/u.TeV)
+        # folded_events_l = np.random.choice(a=events, p=np.divide(A_effs, sum(A_effs)), size=int(sample_factor*N))
+    # else:
+    #     folded_events = []
+    # print(len(folded_events), len(folded_events_l))
+
     return folded_events
 
 
