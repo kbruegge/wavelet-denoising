@@ -50,17 +50,16 @@ def main(
     '''
 
     cta_perf_fits = fits.open('/home/lena/Dokumente/CTA/prod3b-caldb-20170502/caldb/data/cta/prod3b/bcf/South_z20_100s/irf_file.fits')
-    data_A_eff = cta_perf_fits[1]
-    data_ang_res = cta_perf_fits[2]
-    data_bg_rate = cta_perf_fits[4]
+    data_A_eff = cta_perf_fits['EFFECTIVE AREA']
+    data_ang_res = cta_perf_fits['POINT SPREAD FUNCTION']
+    data_bg_rate = cta_perf_fits['BACKGROUND']
 
-    a_eff_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_A_eff.data['ENERG_LO'][0] + data_A_eff.data['ENERG_HI'][0])/2, "A_eff": data_A_eff.data['EFFAREA'][0].mean(axis=0)}))
+    a_eff_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_A_eff.data['ENERG_LO'][0] + data_A_eff.data['ENERG_HI'][0])/2, "A_eff": data_A_eff.data['EFFAREA'][0][0]}))
     ang_res_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_ang_res.data['ENERG_LO'][0] + data_ang_res.data['ENERG_HI'][0])/2, "Ang_Res": data_ang_res.data['SIGMA'][0][0]}))
-    bg_rate_south = pd.DataFrame(OrderedDict({"E_TeV": (data_bg_rate.data['ENERG_LO'][0] + data_bg_rate.data['ENERG_HI'][0])/2, "bg_rate": data_bg_rate.data['BGD'][0].sum(axis=1).sum(axis=1)}))
 
     # create cubes for steady source and steady source with transient
-    cube_steady = simulate_steady_source(6 * u.deg, 6 * u.deg, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
-    cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, bg_rate_south, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
+    cube_steady = simulate_steady_source(6 * u.deg, 6 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
+    cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
 
     # remove mean measured noise from current cube
     cube = cube_with_transient - cube_steady.mean(axis=0)
