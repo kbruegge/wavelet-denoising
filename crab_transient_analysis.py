@@ -11,6 +11,7 @@ from ctawave.plot import TransientPlotter
 from ctawave.denoise import thresholding_3d
 from ctawave.toy_models_crab import simulate_steady_source, \
     simulate_steady_source_with_transient
+from tqdm import tqdm
 plt.style.use('ggplot')
 
 
@@ -22,6 +23,13 @@ plt.style.use('ggplot')
     type=click.INT,
     help='Number of timesteps to simulate',
     default='100'
+)
+@click.option(
+    '--time_steps_bg',
+    '-s_bg',
+    type=click.INT,
+    help='Number of slices for background simulation',
+    default='5'
 )
 @click.option(
     '--time_per_slice',
@@ -36,11 +44,20 @@ plt.style.use('ggplot')
     help='Colormap to use for histograms',
     default='viridis'
 )
+@click.option(
+    '--cu_flare',
+    '-cu',
+    help='Transient brightness in crab units',
+    default=1.0
+)
 def main(
             out_file,
+            cu_flare,
             time_per_slice,
             time_steps,
+            time_steps_bg,
             cmap
+
         ):
     '''
     Use a crab toy model to create a transient appearing in the FoV of another source.
@@ -49,17 +66,17 @@ def main(
     OUT_FILE argument.
     '''
 
-    cta_perf_fits = fits.open('/home/lena/Dokumente/CTA/prod3b-caldb-20170502/caldb/data/cta/prod3b/bcf/South_z20_100s/irf_file.fits')
+    cta_perf_fits = fits.open('/home/lena/Software/ctools-1.3.0/caldb/data/cta/prod3b/bcf/South_z20_average_100s/irf_file.fits')
     data_A_eff = cta_perf_fits['EFFECTIVE AREA']
     data_ang_res = cta_perf_fits['POINT SPREAD FUNCTION']
     data_bg_rate = cta_perf_fits['BACKGROUND']
 
     a_eff_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_A_eff.data['ENERG_LO'][0] + data_A_eff.data['ENERG_HI'][0])/2, "A_eff": data_A_eff.data['EFFAREA'][0][0]}))
-    ang_res_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_ang_res.data['ENERG_LO'][0] + data_ang_res.data['ENERG_HI'][0])/2, "Ang_Res": data_ang_res.data['SIGMA'][0][0]}))
+    ang_res_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_ang_res.data['ENERG_LO'][0] + data_ang_res.data['ENERG_HI'][0])/2, "Ang_Res": data_ang_res.data['SIGMA_1'][0][0]}))
 
     # create cubes for steady source and steady source with transient
-    cube_steady = simulate_steady_source(6 * u.deg, 6 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
-    cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
+    cube_steady = simulate_steady_source(6 * u.deg, 6 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, num_slices=time_steps_bg, time_per_slice=time_per_slice * u.s)
+    cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, cu_flare, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
 
     # remove mean measured noise from current cube
     cube = cube_with_transient - cube_steady.mean(axis=0)

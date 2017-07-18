@@ -14,6 +14,7 @@ def simulate_steady_source_with_transient(
             df_A_eff,
             fits_bg_rate,
             df_Ang_Res,
+            cu_flare,
             num_slices=100,
             time_per_slice=30 * u.s,
             bins=[80, 80],
@@ -29,14 +30,15 @@ def simulate_steady_source_with_transient(
     N_steady_source = spectrum.number_particles_crab(time_per_slice, E_min, E_max, sim_area)
     N_background_cta = performance.integrate_background(fits_bg_rate, time_per_slice)
 
-    N_transient_max = 2*N_steady_source                                         # Random number for transient sample!!!
-    transient_scale = (N_transient_max*signal.gaussian(num_slices, std=5)).astype(int)  # arbitrary value for std!!
+    # N_transient_max = 2*N_steady_source                                         # Random number for transient sample!!!
+    # transient_scale = (N_transient_max*signal.gaussian(num_slices, std=5)).astype(int)  # arbitrary value for std!!
 
-    # pks_data = np.loadtxt('/home/lena/Dokumente/CTA/transient_data_2.txt')
-    # flare_interp = np.interp(range(140), pks_data[:, 0] - pks_data[:, 0].min(),  pks_data[:, 1])
-    # transient_scale = (flare_interp/0.25 * N_steady_source).astype(int)
+    pks_data = np.loadtxt('/home/lena/Dokumente/CTA/transient_data_1.txt')
+    flare_interp = np.interp(range(num_slices), np.linspace(0, num_slices, len(pks_data)),  pks_data[:, 1])
+    transient_scale = (flare_interp/flare_interp.max() * N_steady_source*cu_flare).astype(int)
 
     slices = []
+    print('Simulate transient')
     for i in tqdm(range(num_slices)):
         folded_events_crab = performance.response(time_per_slice, N_steady_source, E_min, E_max, df_A_eff, sim_area)
         ang_res_steady_source = performance.interp_ang_res(folded_events_crab, df_Ang_Res)
@@ -62,7 +64,7 @@ def simulate_steady_source(
             df_A_eff,
             fits_bg_rate,
             df_Ang_Res,
-            num_slices=100,
+            num_slices,
             time_per_slice=30 * u.s,
             bins=[80, 80],
             E_min=0.1 * u.TeV,
@@ -77,8 +79,9 @@ def simulate_steady_source(
     N_background_cta = performance.integrate_background(fits_bg_rate, time_per_slice)
 
     n_events = 0
-    print(N_background_cta, N_steady_source)
+    # print(N_background_cta, N_steady_source)
     slices = []
+    print('Simulate steady source')
     for i in tqdm(range(num_slices)):
         folded_events_crab = performance.response(time_per_slice, N_steady_source, E_min, E_max, df_A_eff, sim_area)
         ang_res_steady_source = performance.interp_ang_res(folded_events_crab, df_Ang_Res)
@@ -90,5 +93,5 @@ def simulate_steady_source(
 
         slices.append(np.histogram2d(RA, DEC, range=[[fov_min / u.deg, fov_max / u.deg], [fov_min / u.deg, fov_max / u.deg]], bins=bins)[0])
         n_events += 1/float(num_slices)*len(folded_events_crab)
-    print("Events Mean: ", n_events)
+    # print("Events Mean: ", n_events)
     return np.array(slices)
