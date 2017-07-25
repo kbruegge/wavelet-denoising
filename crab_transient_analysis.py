@@ -1,4 +1,6 @@
+import numpy as np
 import matplotlib.pyplot as plt
+import scipy.ndimage as ndimage
 import pandas as pd
 import pywt
 import click
@@ -96,12 +98,13 @@ def main(
     # remove mean measured noise from current cube
     cube = remove_steady_background(cube_with_transient, n_bg_slices, gap)
 
+    cube_smoothed = ndimage.gaussian_filter(cube, sigma=(5,5,0), order=0)
     # get wavelet coefficients
-    coeffs = pywt.swtn(data=cube, wavelet='bior1.3', level=2, start_level=0)
+    # coeffs = pywt.swtn(data=cube, wavelet='bior1.3', level=2, start_level=0)
 
     # remove noisy coefficents.
-    ct = thresholding_3d(coeffs, k=30)
-    cube_smoothed = pywt.iswtn(coeffs=ct, wavelet='bior1.3')
+    # ct = thresholding_3d(coeffs, k=30)
+    # cube_smoothed = pywt.iswtn(coeffs=ct, wavelet='bior1.3')
 
     # some Criterion which could be used to trigger this.
     trans_factor = cube_smoothed.max(axis=1).max(axis=1)
