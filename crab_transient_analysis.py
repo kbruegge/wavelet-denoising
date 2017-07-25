@@ -9,9 +9,7 @@ from collections import OrderedDict
 from matplotlib import animation
 from ctawave.plot import TransientPlotter
 from ctawave.denoise import thresholding_3d
-from ctawave.toy_models_crab import simulate_steady_source, \
-    simulate_steady_source_with_transient
-from tqdm import tqdm
+from ctawave.toy_models_crab import simulate_steady_source_with_transient, remove_steady_background
 plt.style.use('ggplot')
 
 
@@ -39,16 +37,28 @@ plt.style.use('ggplot')
     default='30'
 )
 @click.option(
-    '--cmap',
-    '-c',
-    help='Colormap to use for histograms',
-    default='viridis'
-)
-@click.option(
     '--cu_flare',
     '-cu',
     help='Transient brightness in crab units',
     default=1.0
+)
+@click.option(
+    '--n_bg_slices',
+    '-n_bg',
+    help='Number of slices for background mean',
+    default=5
+)
+@click.option(
+    '--gap',
+    '-g',
+    help='Minimal distance to sliding background window (number of slices). Will be enlarged by max. 3 slices if the number of slices for the resulting cube can not be divided by 4.',
+    default=5
+)
+@click.option(
+    '--cmap',
+    '-c',
+    help='Colormap to use for histograms',
+    default='viridis'
 )
 def main(
             out_file,
@@ -56,6 +66,8 @@ def main(
             time_per_slice,
             time_steps,
             time_steps_bg,
+            n_bg_slices,
+            gap,
             cmap
 
         ):
@@ -74,12 +86,17 @@ def main(
     a_eff_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_A_eff.data['ENERG_LO'][0] + data_A_eff.data['ENERG_HI'][0])/2, "A_eff": data_A_eff.data['EFFAREA'][0][0]}))
     ang_res_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_ang_res.data['ENERG_LO'][0] + data_ang_res.data['ENERG_HI'][0])/2, "Ang_Res": data_ang_res.data['SIGMA_1'][0][0]}))
 
-    # create cubes for steady source and steady source with transient
-    cube_steady = simulate_steady_source(6 * u.deg, 6 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, num_slices=time_steps_bg, time_per_slice=time_per_slice * u.s)
+    # enlarge gap so that the input cube for wavelet trafo has a number of slices which can be divided by 4 to perform a two level wavelet trafo.
+    if((time_steps - time_steps_bg - gap) % 4 != 0):
+        gap = gap + (time_steps - time_steps_bg - gap) % 4
+
+    # create cube for steady source with transient
     cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, cu_flare, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
 
     # remove mean measured noise from current cube
-    cube = cube_with_transient - cube_steady.mean(axis=0)
+    cube = remove_steady_background(cube_with_transient, n_bg_slices, gap)
+
+    # get wavelet coefficients
     coeffs = pywt.swtn(data=cube, wavelet='bior1.3', level=2, start_level=0)
 
     # remove noisy coefficents.
@@ -99,7 +116,7 @@ def main(
     anim = animation.FuncAnimation(
         p.fig,
         p.step,
-        frames=time_steps,
+        frames=(time_steps - n_bg_slices - gap),
         interval=15,
         blit=True,
     )

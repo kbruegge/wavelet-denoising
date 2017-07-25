@@ -95,3 +95,11 @@ def simulate_steady_source(
         n_events += 1/float(num_slices)*len(folded_events_crab)
     # print("Events Mean: ", n_events)
     return np.array(slices)
+
+
+def remove_steady_background(cube_with_transient, n_bg_slices, gap):
+    print("Remove background")
+    cube = []
+    for i in tqdm(range(n_bg_slices+gap, len(cube_with_transient))):
+        cube.append(cube_with_transient[i] - cube_with_transient[(i - gap - n_bg_slices):(i-gap)].mean(axis=0))
+    return cube
