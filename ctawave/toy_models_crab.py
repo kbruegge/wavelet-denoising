@@ -97,9 +97,15 @@ def simulate_steady_source(
     return np.array(slices)
 
 
-def remove_steady_background(cube_with_transient, n_bg_slices, gap):
+def remove_steady_background(
+            cube_with_transient,
+            n_bg_slices,
+            gap,
+            bins
+        ):
     print("Remove background")
-    cube = []
+    slices = np.empty([len(cube_with_transient), bins[0], bins[1]])
     for i in tqdm(range(n_bg_slices+gap, len(cube_with_transient))):
-        cube.append(cube_with_transient[i] - cube_with_transient[(i - gap - n_bg_slices):(i-gap)].mean(axis=0))
-    return cube
+        slices[i] = cube_with_transient[i] - cube_with_transient[(i - gap - n_bg_slices):(i-gap)].mean(axis=0)
+
+    return slices

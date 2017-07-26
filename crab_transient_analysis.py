@@ -94,7 +94,7 @@ def main(
     cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, cu_flare, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
 
     # remove mean measured noise from current cube
-    cube = remove_steady_background(cube_with_transient, n_bg_slices, gap)
+    cube = remove_steady_background(cube_with_transient, n_bg_slices, gap, [80, 80])
 
     # get wavelet coefficients
     coeffs = pywt.swtn(data=cube, wavelet='bior1.3', level=2, start_level=0)
@@ -116,7 +116,7 @@ def main(
     anim = animation.FuncAnimation(
         p.fig,
         p.step,
-        frames=(time_steps - n_bg_slices - gap),
+        frames=(time_steps),
         interval=15,
         blit=True,
     )
