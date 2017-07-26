@@ -13,6 +13,7 @@ from ctawave.plot import TransientPlotter
 from ctawave.denoise import thresholding_3d
 from ctawave.toy_models_crab import simulate_steady_source_with_transient, remove_steady_background
 plt.style.use('ggplot')
+from IPython import embed
 
 
 @click.command()
@@ -95,16 +96,11 @@ def main(
     # create cube for steady source with transient
     cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, cu_flare, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
 
-    # remove mean measured noise from current cube
-    cube = remove_steady_background(cube_with_transient, n_bg_slices, gap)
+    # remove mean over sliding window from current cube
+    cube = remove_steady_background(cube_with_transient, n_bg_slices, gap, bins=[80, 80])
 
-    cube_smoothed = ndimage.gaussian_filter(cube, sigma=(5,5,0), order=0)
-    # get wavelet coefficients
-    # coeffs = pywt.swtn(data=cube, wavelet='bior1.3', level=2, start_level=0)
-
-    # remove noisy coefficents.
-    # ct = thresholding_3d(coeffs, k=30)
-    # cube_smoothed = pywt.iswtn(coeffs=ct, wavelet='bior1.3')
+    # remove noise by gaussian smoothing
+    cube_smoothed = ndimage.gaussian_filter(cube, sigma=(2, 2, 0), order=0)
 
     # some Criterion which could be used to trigger this.
     trans_factor = cube_smoothed.max(axis=1).max(axis=1)
@@ -119,7 +115,7 @@ def main(
     anim = animation.FuncAnimation(
         p.fig,
         p.step,
-        frames=(time_steps - n_bg_slices - gap),
+        frames=(time_steps),
         interval=15,
         blit=True,
     )

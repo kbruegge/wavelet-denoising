@@ -4,6 +4,7 @@ import spectrum
 import performance
 from tqdm import tqdm
 from scipy import signal
+from IPython import embed
 
 
 def simulate_steady_source_with_transient(
@@ -79,7 +80,6 @@ def simulate_steady_source(
     N_background_cta = performance.integrate_background(fits_bg_rate, time_per_slice)
 
     n_events = 0
-    # print(N_background_cta, N_steady_source)
     slices = []
     print('Simulate steady source')
     for i in tqdm(range(num_slices)):
@@ -93,13 +93,19 @@ def simulate_steady_source(
 
         slices.append(np.histogram2d(RA, DEC, range=[[fov_min / u.deg, fov_max / u.deg], [fov_min / u.deg, fov_max / u.deg]], bins=bins)[0])
         n_events += 1/float(num_slices)*len(folded_events_crab)
-    # print("Events Mean: ", n_events)
+
     return np.array(slices)
 
 
-def remove_steady_background(cube_with_transient, n_bg_slices, gap):
+def remove_steady_background(
+            cube_with_transient,
+            n_bg_slices,
+            gap,
+            bins
+        ):
     print("Remove background")
-    cube = []
+    slices = np.empty([len(cube_with_transient), bins[0], bins[1]])
     for i in tqdm(range(n_bg_slices+gap, len(cube_with_transient))):
-        cube.append(cube_with_transient[i] - cube_with_transient[(i - gap - n_bg_slices):(i-gap)].mean(axis=0))
-    return cube
+        slices[i] = cube_with_transient[i] - cube_with_transient[(i - gap - n_bg_slices):(i-gap)].mean(axis=0)
+
+    return slices
