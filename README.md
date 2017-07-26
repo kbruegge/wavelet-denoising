@@ -10,4 +10,4 @@ and is enlarged up to 8 in case the number of slices of the resulting cube does 
 The following gif is a simulation for a transient with a maximal brightness of one crab unit and crab as steady source.
 Background rates and angular resolution are based on the instrument response functions of CTA (Release 2017-06-27).
 
-![wavelet](https://raw.githubusercontent.com/mackaiver/wavelet-denoising/tree/sliding_bg_window/transient_sw.gif)
+![wavelet](https://raw.githubusercontent.com/mackaiver/wavelet-denoising/sliding_bg_window/transient_sw.gif)
