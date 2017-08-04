@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import numpy as np
 
-    # plt.savefig(output_file)
-
 class TransientPlotter(object):
 
     @staticmethod
@@ -19,47 +17,57 @@ class TransientPlotter(object):
 
         return fig
 
+    def __init__(self, left_cube, right_cube, trans_factor, trans_scale, time_per_slice, cmap='viridis'):
+        self.fig = plt.figure(figsize=(12, 10))
 
-    def __init__(self, left_cube, right_cube, trans_factor, cmap='viridis'):
-        self.fig = plt.figure()
-
-        ax1 = plt.subplot2grid((2, 2), (0, 0))
-        ax2 = plt.subplot2grid((2, 2), (0, 1))
-        ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
+        ax1 = plt.subplot2grid((3, 2), (0, 0))
+        ax2 = plt.subplot2grid((3, 2), (0, 1))
+        ax3 = plt.subplot2grid((3, 2), (2, 0), colspan=2)
+        ax4 = plt.subplot2grid((3, 2), (1, 0), colspan=2)
 
         ax1.tick_params(labelbottom='off', labelleft='off')
         ax2.tick_params(labelbottom='off', labelleft='off')
 
+        ax3.set_xticks(ax3.get_xticks() * time_per_slice)
         ax3.set_xlabel('Time Step in a.u.')
         ax3.set_ylabel('Trigger Criterion in a.u.')
+
+        ax4.set_ylabel('Transient Scale Factor in a.u.')
 
         vmax = left_cube.max()
         self.l_quad = ax1.pcolormesh(left_cube[0], cmap=cmap, vmin=0, vmax=vmax)
         self.r_quad = ax2.pcolormesh(left_cube[0], cmap=cmap, vmin=0, vmax=vmax)
 
         self.line,  = ax3.plot(0, trans_factor[0])
+        self.trans,  = ax4.plot(0, trans_scale[0])
 
         ax3.set_xlim([0, len(trans_factor)])
         ax3.set_ylim([0, trans_factor.max() + 1])
 
+        ax4.set_xlim([0, len(trans_scale)])
+        ax4.set_ylim([0, trans_scale.max() + 0.1])
+
         self.left_cube = left_cube
         self.right_cube = right_cube
         self.trans_factor = trans_factor
+        self.trans_scale = trans_scale
         self.x = []
         self.y = []
+        self.y4 = []
 
     def step(self, t):
         self.x.append(t)
         self.y.append(self.trans_factor[t])
+        self.y4.append(self.trans_scale[t])
 
         l = self.left_cube[t]
         r = self.right_cube[t]
         self.l_quad.set_array(l.ravel())
         self.r_quad.set_array(r.ravel())
         self.line.set_data(self.x, self.y)
+        self.trans.set_data(self.x, self.y4)
 
-        return [self.l_quad, self.r_quad, self.line]
-
+        return [self.l_quad, self.r_quad, self.line, self.trans]
 
 
 class CubePlotter(object):

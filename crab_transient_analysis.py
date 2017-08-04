@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import pywt
 import click
 import astropy.units as u
@@ -86,12 +87,26 @@ def main(
     a_eff_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_A_eff.data['ENERG_LO'][0] + data_A_eff.data['ENERG_HI'][0])/2, "A_eff": data_A_eff.data['EFFAREA'][0][0]}))
     ang_res_cta_south = pd.DataFrame(OrderedDict({"E_TeV": (data_ang_res.data['ENERG_LO'][0] + data_ang_res.data['ENERG_HI'][0])/2, "Ang_Res": data_ang_res.data['SIGMA_1'][0][0]}))
 
+    transient_template = np.loadtxt('/home/lena/Dokumente/CTA/transient_data_2.txt')
+
     # enlarge gap so that the input cube for wavelet trafo has a number of slices which can be divided by 4 to perform a two level wavelet trafo.
     if((time_steps - time_steps_bg - gap) % 4 != 0):
         gap = gap + (time_steps - time_steps_bg - gap) % 4
 
     # create cube for steady source with transient
-    cube_with_transient = simulate_steady_source_with_transient(6 * u.deg, 6 * u.deg, 2 * u.deg, 2 * u.deg, a_eff_cta_south, data_bg_rate, ang_res_cta_south, cu_flare, num_slices=time_steps, time_per_slice=time_per_slice * u.s)
+    cube_with_transient, trans_scale = simulate_steady_source_with_transient(
+        6 * u.deg,
+        6 * u.deg,
+        2 * u.deg,
+        2 * u.deg,
+        a_eff_cta_south,
+        data_bg_rate,
+        ang_res_cta_south,
+        cu_flare,
+        transient_template,
+        num_slices=time_steps,
+        time_per_slice=(time_per_slice * u.s)
+    )
 
     # remove mean measured noise from current cube
     cube = remove_steady_background(cube_with_transient, n_bg_slices, gap, [80, 80])
@@ -102,13 +117,19 @@ def main(
     # remove noisy coefficents.
     ct = thresholding_3d(coeffs, k=30)
     cube_smoothed = pywt.iswtn(coeffs=ct, wavelet='bior1.3')
+    cube_smoothed = np.concatenate(np.empty(len(cube_with_transient) - len(cube_smoothed), 80, 80), cube_smoothed)
 
     # some Criterion which could be used to trigger this.
     trans_factor = cube_smoothed.max(axis=1).max(axis=1)
 
+    # hdu = fits.PrimaryHDU(cube_smoothed)
+    # hdu.writeto('cube_30_100.fits')
+
     p = TransientPlotter(cube_with_transient,
                          cube_smoothed,
                          trans_factor,
+                         trans_scale/trans_scale.max(),
+                         time_per_slice,
                          cmap=cmap,
                          )
 
